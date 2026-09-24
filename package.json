@@ -1,0 +1,50 @@
+{
+  "name": "pocketrag",
+  "version": "1.0.0",
+  "description": "Zero-dependency-friendly embedded vector store + RAG pipeline. Index a folder of text/markdown/PDF files and query it locally, offline, with no external services.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "pocketrag": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "rag",
+    "retrieval-augmented-generation",
+    "vector-store",
+    "embedded-database",
+    "bm25",
+    "search",
+    "cli",
+    "offline"
+  ],
+  "author": "PocketRAG contributors",
+  "license": "MIT",
+  "dependencies": {
+    "pdf-parse": "1.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "pdf-lib": "^1.17.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}
