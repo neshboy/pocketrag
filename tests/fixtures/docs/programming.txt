@@ -1,0 +1,9 @@
+TypeScript adds a static type system on top of JavaScript, letting editors
+catch mistakes like calling a function with the wrong argument types before
+the code ever runs. When compiled with strict mode enabled, TypeScript
+checks nullability, function signatures, and object shapes far more
+rigorously than plain JavaScript ever could.
+
+Node.js is a JavaScript runtime built on Chrome's V8 engine that lets
+developers run JavaScript outside a web browser, commonly used to build
+command-line tools, web servers, and backend services.
