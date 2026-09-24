@@ -38,14 +38,13 @@
   ],
   "author": "PocketRAG contributors",
   "license": "MIT",
-  "dependencies": {
-    "pdf-parse": "1.1.4"
-  },
   "devDependencies": {
     "@types/node": "^26.6.2",
-    "@types/pdf-parse": "^1.1.5",
     "pdf-lib": "^1.17.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.3.289"
   }
 }
