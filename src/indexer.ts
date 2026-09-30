@@ -34,8 +34,8 @@ export async function indexFolder(
   const store = PocketRagStore.open(dbPath);
   let chunksIndexed = 0;
   try {
-    store.resetIndex();
     store.beginTransaction();
+    store.resetIndex();
 
     for (const doc of documents) {
       const chunks = chunkText(doc.text, options.chunkOptions);

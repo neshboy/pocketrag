@@ -33,6 +33,22 @@ CREATE TABLE IF NOT EXISTS terms (
 );
 `;
 
+/**
+ * SQLite enforces a hard cap on the number of bound parameters in a single
+ * statement (SQLITE_MAX_VARIABLE_NUMBER). Queries that build one `?` per
+ * input value (e.g. a large `IN (...)` list) must stay well under that cap,
+ * so callers batch their input into groups of this size and merge results.
+ */
+const MAX_SQL_VARIABLES = 500;
+
+function chunkArray<T>(items: readonly T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    batches.push(items.slice(i, i + size));
+  }
+  return batches;
+}
+
 export interface StoredChunk {
   id: number;
   sourcePath: string;
@@ -103,8 +119,8 @@ export class PocketRagStore {
       "INSERT INTO postings (term, chunk_id, tf) VALUES (?, ?, ?)",
     );
 
-    this.insertChunkStmt.run(sourcePath, chunkIndex, text, length);
-    const chunkId = Number(this.db.prepare("SELECT last_insert_rowid() AS id").get()?.id);
+    const { lastInsertRowid } = this.insertChunkStmt.run(sourcePath, chunkIndex, text, length);
+    const chunkId = Number(lastInsertRowid);
 
     for (const [term, tf] of termFrequencies) {
       this.insertPostingStmt.run(term, chunkId, tf);
@@ -184,18 +200,20 @@ export class PocketRagStore {
       return result;
     }
 
-    const placeholders = queryTerms.map(() => "?").join(", ");
-    const rows = this.db
-      .prepare(`SELECT term, chunk_id, tf FROM postings WHERE term IN (${placeholders})`)
-      .all(...queryTerms) as Array<{ term: string; chunk_id: number; tf: number }>;
+    for (const batch of chunkArray(queryTerms, MAX_SQL_VARIABLES)) {
+      const placeholders = batch.map(() => "?").join(", ");
+      const rows = this.db
+        .prepare(`SELECT term, chunk_id, tf FROM postings WHERE term IN (${placeholders})`)
+        .all(...batch) as Array<{ term: string; chunk_id: number; tf: number }>;
 
-    for (const row of rows) {
-      let byTerm = result.get(row.chunk_id);
-      if (!byTerm) {
-        byTerm = new Map<string, number>();
-        result.set(row.chunk_id, byTerm);
+      for (const row of rows) {
+        let byTerm = result.get(row.chunk_id);
+        if (!byTerm) {
+          byTerm = new Map<string, number>();
+          result.set(row.chunk_id, byTerm);
+        }
+        byTerm.set(row.term, row.tf);
       }
-      byTerm.set(row.term, row.tf);
     }
 
     return result;
@@ -207,19 +225,21 @@ export class PocketRagStore {
     if (ids.length === 0) {
       return result;
     }
-    const placeholders = ids.map(() => "?").join(", ");
-    const rows = this.db
-      .prepare(`SELECT id, source_path, chunk_index, text, length FROM chunks WHERE id IN (${placeholders})`)
-      .all(...ids) as Array<{ id: number; source_path: string; chunk_index: number; text: string; length: number }>;
+    for (const batch of chunkArray(ids, MAX_SQL_VARIABLES)) {
+      const placeholders = batch.map(() => "?").join(", ");
+      const rows = this.db
+        .prepare(`SELECT id, source_path, chunk_index, text, length FROM chunks WHERE id IN (${placeholders})`)
+        .all(...batch) as Array<{ id: number; source_path: string; chunk_index: number; text: string; length: number }>;
 
-    for (const row of rows) {
-      result.set(row.id, {
-        id: row.id,
-        sourcePath: row.source_path,
-        chunkIndex: row.chunk_index,
-        text: row.text,
-        length: row.length,
-      });
+      for (const row of rows) {
+        result.set(row.id, {
+          id: row.id,
+          sourcePath: row.source_path,
+          chunkIndex: row.chunk_index,
+          text: row.text,
+          length: row.length,
+        });
+      }
     }
     return result;
   }
